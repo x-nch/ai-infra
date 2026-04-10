@@ -1,0 +1,33 @@
+# GPU Operator values for helm install
+# Use this with: helm install gpu-operator nvidia/gpu-operator -f gpu-values.yml
+
+driver:
+  enabled: false  # CRITICAL: Host already has nvidia-driver-535
+
+toolkit:
+  enabled: true
+  containerToolkit:
+    image: nvcr.io/nvidia/k8s/container-toolkit:v1.14.1
+
+operator:
+  defaultRuntime: containerd
+  initializeSystemD: false
+  rbac:
+    create: true
+  controller:
+    image: nvcr.io/nvidia/gpu-operator:v24.6.0
+
+devicePlugin:
+  enabled: true
+  image: nvcr.io/nvidia/k8s/device-plugin:v0.14.6
+
+migManager:
+  enabled: false
+
+nodeSelector:
+  gpu-feature: present
+
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"

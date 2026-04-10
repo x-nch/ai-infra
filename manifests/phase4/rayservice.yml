@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-serving
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-token
+  namespace: llm-serving
+type: Opaque
+stringData:
+  token: ""  # Add your HuggingFace token here for gated models
+---
+apiVersion: ray.io/v1
+kind: RayService
+metadata:
+  name: vllm-service
+  namespace: llm-serving
+spec:
+  serviceUnhealthySecondThreshold: 600
+  deploymentUnhealthySecondThreshold: 300
+  rayClusterConfig:
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: "0.0.0.0"
+        num-cpus: "4"
+        num-gpus: "0"
+      template:
+        spec:
+          containers:
+          - name: ray-head
+            image: rayproject/ray:2.9.3-gpu
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: RAY_memory_monitor_refresh_ms
+              value: "0"
+            - name: RAY_ACTOR_OOM_GRACE
+              value: "60"
+            resources:
+              requests:
+                cpu: "4"
+                memory: "16Gi"
+              limits:
+                cpu: "4"
+                memory: "16Gi"
+            volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+          volumes:
+          - name: model-cache
+            persistentVolumeClaim:
+              claimName: model-storage
+          serviceAccountName: default
+    workerGroupSpecs:
+    - groupName: vllm-workers
+      replicas: 1
+      minReplicas: 1
+      maxReplicas: 2
+      numCurrentWorkers: 1
+      rayStartParams:
+        num-cpus: "8"
+        num-gpus: "1"
+        memory: "32Gi"
+      template:
+        spec:
+          containers:
+          - name: vllm
+            image: rayproject/ray:2.9.3-gpu
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: MODEL_ID
+              value: "meta-llama/Llama-2-7b-chat-hf"
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+            - name: RAY_memory_monitor_refresh_ms
+              value: "0"
+            - name: RAY_ACTOR_OOM_GRACE
+              value: "60"
+            - name: VLLM_GPU_MEMORY_UTILIZATION
+              value: "0.85"
+            - name: VLLM_MAX_MODEL_LEN
+              value: "4096"
+            resources:
+              limits:
+                nvidia.com/gpu: "1"
+              requests:
+                cpu: "8"
+                memory: "32Gi"
+            volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+            - name: code
+              mountPath: /code
+          volumes:
+          - name: model-cache
+            persistentVolumeClaim:
+              claimName: model-storage
+          - name: code
+            emptyDir: {}
+          nodeSelector:
+            gpu-type: rtx3090
+          tolerations:
+          - key: "nvidia.com/gpu"
+            operator: "Exists"
+            effect: "NoSchedule"
+          serviceAccountName: default
+  serveConfigV2: |
+    import_path: serve_vllm:app
+    runtime_env:
+      env_vars:
+        MODEL_ID: "meta-llama/Llama-2-7b-chat-hf"
+        VLLM_GPU_MEMORY_UTILIZATION: "0.85"
+        VLLM_MAX_MODEL_LEN: "4096"
+    deployments:
+    - name: vllm-deployment
+      num_replicas: 1
+      max_restart_attempts: 5
+      ray_actor_options:
+        num_gpus: 1
+        num_cpus: 4
+        memory: "32Gi"

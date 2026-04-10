@@ -1,0 +1,10 @@
+# macOS
+._*
+
+# Git
+.git/
+
+# IDE
+.idea/
+.vscode/
+*.swp

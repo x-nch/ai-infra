@@ -1,0 +1,35 @@
+# Prometheus Helm Values
+# Usage: helm install prometheus prometheus-community/prometheus -f prometheus-values.yml
+
+server:
+  persistentVolume:
+    enabled: false  # Use emptyDir for home lab
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  service:
+    type: ClusterIP
+
+alertmanager:
+  enabled: false  # Skip for lightweight setup
+
+pushgateway:
+  enabled: false  # Skip for lightweight setup
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# Additional scrape configs
+extraScrapeConfigs: |
+  - job_name: 'ray-metrics'
+    static_configs:
+      - targets: ['ray-head-svc.ray-system.svc.cluster.local:8080']

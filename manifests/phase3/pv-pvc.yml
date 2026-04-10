@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+  labels:
+    type: nfs
+    storage-tier: shared
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - hard
+    - timeo=600
+    - intr
+  nfs:
+    server: 192.168.1.101
+    path: /mnt/nfs/share
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-storage
+  namespace: ray-system
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
+  selector:
+    matchLabels:
+      type: nfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: checkpoint-storage
+  namespace: ray-training
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: ""
+  selector:
+    matchLabels:
+      type: nfs

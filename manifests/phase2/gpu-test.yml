@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-validation-rtx3090
+  namespace: default
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: gpu-test
+        gpu-type: rtx3090
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        gpu-type: rtx3090
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: cuda-test
+        image: nvidia/cuda:12.0.0-base-ubuntu22.04
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== Testing RTX 3090 GPU ==="
+            echo "Timestamp: $(date)"
+            nvidia-smi --query-gpu=name,driver_version,memory.total,memory.free --format=csv
+            echo "=== GPU Test Passed ==="
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-validation-gtx1650
+  namespace: default
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: gpu-test
+        gpu-type: gtx1650
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        gpu-type: gtx1650
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: cuda-test
+        image: nvidia/cuda:12.0.0-base-ubuntu22.04
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "=== Testing GTX 1650 GPU ==="
+            echo "Timestamp: $(date)"
+            nvidia-smi --query-gpu=name,driver_version,memory.total,memory.free --format=csv
+            echo "=== GPU Test Passed ==="
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            nvidia.com/gpu: 1

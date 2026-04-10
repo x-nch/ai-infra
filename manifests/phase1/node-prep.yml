@@ -1,0 +1,81 @@
+---
+- name: Node Preparation for KubeRay Cluster
+  hosts: all
+  become: true
+  vars:
+    admin_user: admin
+    ssh_port: 22
+    allowed_tcp_ports:
+      - 6443  # k3s API server
+      - 10250 # kubelet
+      - 30000-32767  # NodePort range
+    ntp_server: pool.ntp.org
+
+  tasks:
+    - name: Create admin user
+      user:
+        name: "{{ admin_user }}"
+        groups: docker
+        shell: /bin/bash
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Add admin to docker group
+      user:
+        name: "{{ admin_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - nfs-common
+          - chrony
+        state: present
+
+    - name: Configure UFW rules
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ allowed_tcp_ports }}"
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Configure NTP
+      template:
+        src: chrony.conf.j2
+        dest: /etc/chrony/chrony.conf
+      notify: Restart chrony
+
+    - name: Disable swap
+      command: swapoff -a
+      failed_when: false
+
+    - name: Remove swap entries from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^.*swap.*$'
+        state: absent
+
+  handlers:
+    - name: Restart chrony
+      systemd:
+        name: chrony
+        state: restarted

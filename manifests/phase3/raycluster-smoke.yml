@@ -1,0 +1,61 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: smoke-test-cluster
+  namespace: ray-system
+spec:
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+      num-cpus: "4"
+      ray-client-server-port: "10001"
+    serviceType: ClusterIP
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray:2.9.3
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 6379
+            name: redis
+          - containerPort: 10001
+            name: ray-worker
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+          volumeMounts: []
+        serviceAccountName: default
+        dnsPolicy: ClusterFirst
+
+  workerGroupSpecs:
+  - groupName: workers
+    replicas: 1
+    minReplicas: 0
+    maxReplicas: 10
+    rayStartParams:
+      num-cpus: "4"
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: rayproject/ray:2.9.3
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+          volumeMounts: []
+        serviceAccountName: default
+        dnsPolicy: ClusterFirst
+
+  rayVersion: "2.9.3"
