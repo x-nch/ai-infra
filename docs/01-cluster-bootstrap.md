@@ -1,29 +1,19 @@
 # Phase 1: Cluster Bootstrap
 
-**Duration**: 1-2 hours | **Severity**: 1 Fix (k3d on macOS)
+**Duration**: 1-2 hours | **Severity**: 1 Blocker (k3s-agent connection)
 
 ---
 
 ## Overview
 
-This phase sets up the Kubernetes cluster using k3d (macOS) or k3s (Linux), and prepares the network infrastructure with MetalLB for load balancing.
-
-## macOS (nexi-edge) Setup
-
-| Task | Command |
-|------|---------|
-| Install | `brew install colima k3d` |
-| Start Docker runtime | `colima start` |
-| Create cluster | `k3d cluster create ai-infra` |
-| Get kubeconfig | `k3d kubeconfig get ai-infra` |
+This phase sets up the Kubernetes cluster using k3s on Linux nodes (gate7 as master), and prepares the network infrastructure with MetalLB for load balancing.
 
 ## Node Network Configuration
 
 | Node | Hostname | IP Address | Role |
 |------|----------|------------|------|
-| nexi-edge | `nexi-edge` | `k3d` | Control Plane |
+| gate7 | `gate7` | `192.168.1.8` | k3s Master + GTX 1650 4GB |
 | xnch-core | `xnch-core` | `192.168.1.10` | GPU Worker + NFS Server |
-| gate7 | `gate7` | `192.168.1.8` | GPU Worker |
 
 ---
 

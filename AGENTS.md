@@ -29,9 +29,8 @@ This is an **infrastructure-as-code** repository. There are no traditional build
 
 ## Cluster Topology
 
-- **nexi-edge** (MacBook, 192.168.1.9): k3d cluster / control plane (no GPU)
+- **gate7** (i7, 192.168.1.8): k3s master / control plane + GTX 1650 4GB
 - **xnch-core** (i9, 192.168.1.10): RTX 3090 24GB + NFS server (GPU worker)
-- **gate7** (i7, 192.168.1.8): GTX 1650 4GB (GPU worker)
 
 ---
 
@@ -252,8 +251,8 @@ async def generate(
 
 ## Key Files
 
-- k3d cluster on nexi-edge (`k3d cluster create ai-infra`)
-- `manifests/phase1/k3s-agent.sh` — Run on gate7 (Linux, worker node) to join k3d cluster
+- `manifests/phase1/k3s-master.sh` — Run on gate7 (control plane) first
+- `manifests/phase1/k3s-agent.sh` — Run on xnch-core (worker) to join cluster
 - `manifests/phase4/rayservice.yml` — vLLM RayService definition
 - `manifests/phase4/ingress-auth.yml` — TLS + API auth ingress
 - `manifests/phase4/serve_vllm.py` — Ray Serve vLLM application
