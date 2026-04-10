@@ -14,13 +14,24 @@ This is an **infrastructure-as-code** repository. There are no traditional build
 | Check pods | `kubectl get pods -A` |
 | Port-forward service | `kubectl port-forward -n <ns> svc/<svc> <local>:<remote>` |
 
+### macOS (nexi-edge) - k3d + Colima
+
+| Task | Command |
+|------|---------|
+| Install | `brew install colima k3d` |
+| Start Docker runtime | `colima start` |
+| Create cluster | `k3d cluster create ai-infra` |
+| Get kubeconfig | `k3d kubeconfig get ai-infra` |
+| Delete cluster | `k3d cluster delete ai-infra` |
+| Stop Colima | `colima stop` |
+
 ---
 
 ## Cluster Topology
 
-- **i7** (192.168.1.101): RTX 3090 24GB + NFS server (primary GPU worker)
-- **i9** (192.168.1.102): GTX 1650 4GB (secondary GPU worker)
-- **MacBook** (192.168.1.9): k3s Master / control plane (no GPU)
+- **nexi-edge** (MacBook, 192.168.1.9): k3d cluster / control plane (no GPU)
+- **xnch-core** (i9, 192.168.1.10): RTX 3090 24GB + NFS server (GPU worker)
+- **gate7** (i7, 192.168.1.8): GTX 1650 4GB (GPU worker)
 
 ---
 
@@ -233,15 +244,16 @@ async def generate(
 
 1. **MetalLB requires both IPAddressPool AND L2Advertisement** — without L2Advertisement, load balancers won't work
 2. **GPU Operator** uses `driver.enabled=false` — host already has nvidia-driver-535
-3. **API key auth** is hardcoded in ingress — change `your-secure-api-key-here` in `manifests/phase4/ingress-auth.yml`
-4. **RayService serveConfigV2** requires the serve_vllm.py script in the working_dir (S3 bucket in manifest — may need local volume fix for offline)
+3. **PV/PVC** — ensure accessModes match between static PV and PVC (500Gi vs 1Ti can cause binding failures)
+4. **API key auth** is hardcoded in ingress — change `your-secure-api-key-here` in `manifests/phase4/ingress-auth.yml`
+5. **RayService serveConfigV2** — `import_path: serve_vllm:app` expects the Python script at container path `/code/serve_vllm.py` (mounted via emptyDir in worker spec)
 
 ---
 
 ## Key Files
 
-- `manifests/phase1/k3s-master.sh` — Run on MacBook (control plane) first
-- `manifests/phase1/k3s-agent.sh` — Run on i7 & i9 with token
+- k3d cluster on nexi-edge (`k3d cluster create ai-infra`)
+- `manifests/phase1/k3s-agent.sh` — Run on gate7 (Linux, worker node) to join k3d cluster
 - `manifests/phase4/rayservice.yml` — vLLM RayService definition
 - `manifests/phase4/ingress-auth.yml` — TLS + API auth ingress
 - `manifests/phase4/serve_vllm.py` — Ray Serve vLLM application

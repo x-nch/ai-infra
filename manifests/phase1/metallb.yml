@@ -14,7 +14,7 @@ data:
     - name: local-pool
       protocol: layer2
       addresses:
-      - 192.168.1.200-192.168.1.250  # REPLACE with your available IP range
+      - 192.168.1.230-192.168.1.250  # Available IP range for LoadBalancers
     ---
     # Layer 2 advertisement (required for layer2 mode)
     l2-advertisement:
@@ -122,7 +122,7 @@ spec:
         fsGroup: 65534
       containers:
       - name: controller
-        image: registry.k8s.io/metallb/controller:v0.14.5
+        image: registry.k8s.io/metallb/controller:v0.15.3
         args:
         - --controller.namespace=metallb-system
         securityContext:
@@ -169,7 +169,7 @@ spec:
         fsGroup: 65534
       containers:
       - name: speaker
-        image: registry.k8s.io/metallb/speaker:v0.14.5
+        image: registry.k8s.io/metallb/speaker:v0.15.3
         args:
         - --port=7473
         - --config=config
