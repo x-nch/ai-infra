@@ -1,8 +1,8 @@
 #!/bin/bash
-# k3s-master.sh - Run on Node 3 (k3s Master)
+# k3s-master.sh - Run on gate7 (k3s Master)
 set -e
 
-echo "=== Installing k3s Master on Node 3 ==="
+echo "=== Installing k3s Master on gate7 ==="
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -37,5 +37,5 @@ echo ""
 echo "=== Installation Complete ==="
 echo "Next steps:"
 echo "1. Copy the node token above"
-echo "2. Run k3s-agent.sh on Node 1 and Node 2"
+echo "2. Run k3s-agent.sh on xnch-core"
 echo "3. Verify all nodes: kubectl get nodes"

@@ -525,17 +525,17 @@ chmod +x manifests/phase4/inference-test.sh
 
 | External Port | Internal IP | Internal Port | Purpose |
 |---------------|-------------|---------------|---------|
-| 80 | 192.168.1.103 | 80 | cert-manager HTTP01 (TLS) |
-| 443 | 192.168.1.103 | 443 | ingress-nginx HTTPS |
-| 31443 | 192.168.1.103 | 31443 | Custom external port |
+| 80 | 192.168.1.8 | 80 | cert-manager HTTP01 (TLS) |
+| 443 | 192.168.1.8 | 443 | ingress-nginx HTTPS |
+| 31443 | 192.168.1.8 | 31443 | Custom external port |
 
 ### Router Configuration Steps
 
 1. **Log into your home router**
 2. **Port Forwarding / NAT Rules**:
-   - Forward `External Port 80` → `Node 3 IP:80`
-   - Forward `External Port 443` → `Node 3 IP:443` (if using standard HTTPS)
-   - Forward `External Port 31443` → `Node 3 IP:31443`
+   - Forward `External Port 80` → `gate7 IP:80`
+   - Forward `External Port 443` → `gate7 IP:443` (if using standard HTTPS)
+   - Forward `External Port 31443` → `gate7 IP:31443`
 
 3. **Find NodePort for ingress-nginx**:
 ```bash

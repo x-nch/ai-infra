@@ -11,7 +11,7 @@ This phase installs the NVIDIA GPU Operator to expose GPUs to Kubernetes and con
 ## Prerequisites
 
 - k3s cluster running (Phase 1 complete)
-- NVIDIA drivers installed on GPU nodes (Node 1 and Node 2)
+- NVIDIA drivers installed on GPU nodes (gate7 and xnch-core)
 
 ---
 
@@ -197,9 +197,8 @@ kubectl get pods -n gpu-operator
 kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.allocatable.nvidia\.com/gpu}{"\n"}{end}'
 
 # Expected output should show GPU count per node
-# node1   1
-# node2   1
-# node3   <none>
+# xnch-core   1
+# gate7   1
 ```
 
 ---
@@ -211,20 +210,15 @@ Remove redundant nvidia.com/gpu.product labels (set by NFD automatically). Keep 
 ```bash
 # Corrected node labeling script
 cat > manifests/phase2/node-labels.yml << 'EOF'
-# Node 1 - RTX 3090 Primary GPU Node
-kubectl label nodes node1 \
+# xnch-core - RTX 3090 Primary GPU Node + NFS Server
+kubectl label nodes xnch-core \
   gpu-type=rtx3090 \
   workload-type=gpu-primary \
   --overwrite
 
-# Node 2 - GTX 1650 Secondary GPU Node
-kubectl label nodes node2 \
+# gate7 - GTX 1650 GPU Node + Control Plane
+kubectl label nodes gate7 \
   gpu-type=gtx1650 \
-  workload-type=gpu-secondary \
-  --overwrite
-
-# Node 3 - Control Plane (CPU only)
-kubectl label nodes node3 \
   workload-type=control-plane \
   --overwrite
 EOF

@@ -1,12 +1,12 @@
 # KubeRay AI Infrastructure
 
-**Execution Planner v1.1** — 3-Node Home Cluster
+**Execution Planner v1.2** — 2-Node Home Cluster
 
 ---
 
 ## Executive Summary
 
-This project provisions a 3-node on-premise AI inference and training cluster using k3s, KubeRay, and vLLM — targeting GPU-accelerated LLM serving on an RTX 3090 (Node 1) with an auxiliary GTX 1650 (Node 2), orchestrated from a CPU-only control plane (Node 3). The system exposes an OpenAI-compatible inference endpoint over HTTPS via MetalLB, ingress-nginx, and cert-manager.
+This project provisions a 2-node on-premise AI inference cluster using k3s, KubeRay, and vLLM — targeting GPU-accelerated LLM serving on an RTX 3090 (xnch-core) with an auxiliary GTX 1650 (gate7), orchestrated from gate7 as the control plane. The system exposes an OpenAI-compatible inference endpoint over HTTPS via MetalLB, ingress-nginx, and cert-manager.
 
 ---
 
@@ -14,9 +14,8 @@ This project provisions a 3-node on-premise AI inference and training cluster us
 
 | Node | Hardware | Role | Storage |
 |------|----------|------|---------|
-| **Node 1** | i9 14th Gen + 48GB RAM + RTX 3090 24GB | Primary GPU Worker + NFS Server | 2TB internal + 1TB SSD (NFS) |
-| **Node 2** | i7 10th Gen + 16GB RAM + GTX 1650 4GB | Secondary GPU Worker | 1TB internal |
-| **Node 3** | i5 16GB RAM (no GPU) | k3s Master + Control Plane | 500GB internal |
+| **gate7** | i7 + 16GB RAM + GTX 1650 4GB | k3s Master + GPU Worker | 1TB internal |
+| **xnch-core** | i9 + 48GB RAM + RTX 3090 24GB | GPU Worker + NFS Server | 2TB internal + 1TB SSD (NFS) |
 
 ---
 
@@ -31,40 +30,34 @@ This project provisions a 3-node on-premise AI inference and training cluster us
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                      HOME ROUTER (Port Forward)                        │
-│           31443 → Node 3      |      80 → Node 3 (TLS)                  │
+│           31443 → gate7       |      80 → gate7 (TLS)                  │
 └─────────────────────────────────────────────────────────────────────────┘
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                      Node 3 (k3s Master)                               │
+│                      gate7 (k3s Master)                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                    │
 │  │  k3s        │  │ ingress-    │  │  cert-      │                    │
 │  │  control    │  │ nginx       │  │  manager    │                    │
+│  │  + GTX 1650 │  │             │  │             │                    │
 │  └─────────────┘  └─────────────┘  └─────────────┘                    │
 └─────────────────────────────────────────────────────────────────────────┘
                                      │
-        ┌────────────────────────────┼────────────────────────────┐
-        │                            │                            │
-        ▼                            ▼                            ▼
-┌───────────────────┐    ┌───────────────────┐    ┌───────────────────┐
-│  Node 1          │    │  Node 2          │    │  Node 3           │
-│  ┌─────────────┐  │    │  ┌─────────────┐  │    │  (No GPU)         │
-│  │ RTX 3090    │  │    │  │ GTX 1650    │  │    │                   │
-│  │ vLLM Worker │  │    │  │ GPU Worker  │  │    │                   │
-│  └─────────────┘  │    │  └─────────────┘  │    │                   │
-│  ┌─────────────┐  │    │                   │    │                   │
-│  │ NFS Server  │  │    │                   │    │                   │
-│  │ (1TB SSD)   │  │    │                   │    │                   │
-│  └─────────────┘  │    │                   │    │                   │
-└───────────────────┘    └───────────────────┘    └───────────────────┘
-        │
-        ▼
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      xnch-core (GPU Worker)                           │
+│  ┌─────────────┐  ┌─────────────┐                                    │
+│  │ RTX 3090    │  │ NFS Server  │                                    │
+│  │ vLLM Worker │  │ (1TB SSD)   │                                    │
+│  └─────────────┘  └─────────────┘                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
 ┌───────────────────┐
 │  Shared Storage  │
 │  (NFS: /mnt/nfs) │
 │  - Model weights │
 │  - Datasets      │
-│  - Checkpoints   │
 └───────────────────┘
 ```
 
@@ -88,20 +81,20 @@ This project provisions a 3-node on-premise AI inference and training cluster us
 ```bash
 # Phase 1: Cluster Bootstrap
 cd manifests/phase1
-./k3s-master.sh   # Run on Node 3
-./k3s-agent.sh    # Run on Node 1 & 2
+./k3s-master.sh   # Run on gate7
+./k3s-agent.sh    # Run on xnch-core
 
 # Phase 2: GPU Infrastructure
-kubectl apply -f gpu-operator.yml
+kubectl apply -f manifests/phase2/gpu-operator.yml
 
 # Phase 3: Storage + KubeRay
-./nfs-server.sh   # Run on Node 1
-kubectl apply -f pv-pvc.yml
+./nfs-server.sh   # Run on xnch-core
+kubectl apply -f manifests/phase3/pv-pvc.yml
 helm install kuberay-operator kuberay/kuberay-operator -n ray-system
 
 # Phase 4: vLLM + External Access
-kubectl apply -f rayservice.yml
-kubectl apply -f ingress-auth.yml
+kubectl apply -f manifests/phase4/rayservice.yml
+kubectl apply -f manifests/phase4/ingress-auth.yml
 ```
 
 ---

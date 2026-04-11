@@ -1,7 +1,7 @@
 #!/bin/bash
 # nfs-validate.sh - Run from any node to test NFS connectivity
 
-NFS_SERVER="${NFS_SERVER:-192.168.1.101}"
+NFS_SERVER="${NFS_SERVER:-192.168.1.10}"
 NFS_PATH="${NFS_PATH:-/mnt/nfs/share}"
 LOCAL_MOUNT="${LOCAL_MOUNT:-/tmp/nfs-test}"
 

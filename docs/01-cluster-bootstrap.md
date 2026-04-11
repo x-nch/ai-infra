@@ -1,29 +1,19 @@
 # Phase 1: Cluster Bootstrap
 
-**Duration**: 1-2 hours | **Severity**: 1 Fix (k3d on macOS)
+**Duration**: 1-2 hours | **Severity**: Ready
 
 ---
 
 ## Overview
 
-This phase sets up the Kubernetes cluster using k3d (macOS) or k3s (Linux), and prepares the network infrastructure with MetalLB for load balancing.
-
-## macOS (nexi-edge) Setup
-
-| Task | Command |
-|------|---------|
-| Install | `brew install colima k3d` |
-| Start Docker runtime | `colima start` |
-| Create cluster | `k3d cluster create ai-infra` |
-| Get kubeconfig | `k3d kubeconfig get ai-infra` |
+This phase sets up the Kubernetes cluster using k3s and prepares the network infrastructure with MetalLB for load balancing.
 
 ## Node Network Configuration
 
 | Node | Hostname | IP Address | Role |
 |------|----------|------------|------|
-| nexi-edge | `nexi-edge` | `k3d` | Control Plane |
+| gate7 | `gate7` | `192.168.1.8` | k3s Master + GPU Worker |
 | xnch-core | `xnch-core` | `192.168.1.10` | GPU Worker + NFS Server |
-| gate7 | `gate7` | `192.168.1.8` | GPU Worker |
 
 ---
 
@@ -122,14 +112,11 @@ cat > manifests/phase1/node-prep.yml << 'EOF'
 ```bash
 # Create inventory file
 cat > inventory.ini << 'EOF'
-[node1]
-192.168.1.101
+[gate7]
+192.168.1.8
 
-[node2]
-192.168.1.102
-
-[node3]
-192.168.1.103
+[xnch-core]
+192.168.1.10
 
 [all:vars]
 ansible_user=ubuntu
@@ -144,14 +131,14 @@ ansible-playbook -i inventory.ini manifests/phase1/node-prep.yml
 
 ## T1.2: k3s Installation Scripts
 
-### Master Node Script (Node 3)
+### Master Node Script (gate7)
 
 ```bash
 #!/bin/bash
-# k3s-master.sh - Run on Node 3 (k3s Master)
+# k3s-master.sh - Run on gate7 (k3s Master)
 set -e
 
-echo "=== Installing k3s Master on Node 3 ==="
+echo "=== Installing k3s Master on gate7 ==="
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -183,18 +170,18 @@ echo "/etc/rancher/k3s/k3s.yaml"
 echo "Copy this to your local machine as ~/.kube/config"
 ```
 
-### Agent Node Script (Nodes 1 & 2)
+### Agent Node Script (xnch-core)
 
 ```bash
 #!/bin/bash
-# k3s-agent.sh - Run on Node 1 and Node 2
+# k3s-agent.sh - Run on worker nodes
 # Usage: ./k3s-agent.sh <MASTER_IP> <NODE_TOKEN>
 
 set -e
 
 if [ $# -ne 2 ]; then
   echo "Usage: $0 <MASTER_IP> <NODE_TOKEN>"
-  echo "Example: $0 192.168.1.103 K10a..."
+  echo "Example: $0 192.168.1.8 K10a..."
   exit 1
 fi
 
@@ -218,13 +205,13 @@ echo "Worker node joined successfully!"
 ### Execution
 
 ```bash
-# On Node 3 (Master)
+# On gate7 (Master)
 chmod +x manifests/phase1/k3s-master.sh
 sudo ./k3s-master.sh
 
-# Copy the node token output, then on Node 1 and Node 2:
+# Copy the node token output, then on xnch-core:
 chmod +x manifests/phase1/k3s-agent.sh
-sudo ./k3s-agent.sh 192.168.1.103 "K10a..."
+sudo ./k3s-agent.sh 192.168.1.8 "K10a..."
 
 # Verify from master
 kubectl get nodes -o wide

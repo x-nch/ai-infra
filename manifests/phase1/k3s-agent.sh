@@ -1,14 +1,14 @@
 #!/bin/bash
-# k3s-agent.sh - Run on Node 1 and Node 2
+# k3s-agent.sh - Run on worker nodes
 # Usage: ./k3s-agent.sh <MASTER_IP> <NODE_TOKEN>
 
 set -e
 
 if [ $# -ne 2 ]; then
   echo "Usage: $0 <MASTER_IP> <NODE_TOKEN>"
-  echo "Example: $0 192.168.1.103 'K10a...'"
+  echo "Example: $0 192.168.1.8 'K10a...'"
   echo ""
-  echo "Get MASTER_IP from Node 3 and NODE_TOKEN from k3s-master.sh output"
+  echo "Get MASTER_IP and NODE_TOKEN from k3s-master.sh output"
   exit 1
 fi
 

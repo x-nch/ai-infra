@@ -1,11 +1,11 @@
 #!/bin/bash
-# nfs-server.sh - Run on Node 1 (NFS Server)
+# nfs-server.sh - Run on xnch-core (NFS Server)
 # NOTE: This script assumes your 1TB SSD is at /dev/sdb1
 # Adjust SSD_DEVICE variable if needed
 
 set -e
 
-echo "=== Setting up NFS Server on Node 1 ==="
+echo "=== Setting up NFS Server on xnch-core ==="
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -94,7 +94,7 @@ echo "=== NFS Share Ready ==="
 echo "Export: $MOUNT_POINT"
 echo ""
 echo "Run on other nodes to mount:"
-echo "  mount -t nfs 192.168.1.101:$MOUNT_POINT /mnt/nfs"
+echo "  mount -t nfs 192.168.1.10:$MOUNT_POINT /mnt/nfs"
 echo ""
 echo "Or add to /etc/fstab for persistence:"
-echo "  192.168.1.101:$MOUNT_POINT /mnt/nfs nfs defaults,_netdev 0 0"
+echo "  192.168.1.10:$MOUNT_POINT /mnt/nfs nfs defaults,_netdev 0 0"

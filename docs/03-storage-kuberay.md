@@ -12,20 +12,20 @@ This phase sets up shared NFS storage for model weights and datasets, and instal
 
 - k3s cluster running (Phase 1 complete)
 - GPU Operator installed (Phase 2 complete)
-- 1TB SSD connected to Node 1
+- 1TB SSD connected to xnch-core
 
 ---
 
 ## T3.1: NFS Server Setup
 
-Install NFS server on Node 1 with 1TB SSD mounted.
+Install NFS server on xnch-core with 1TB SSD mounted.
 
 ```bash
 #!/bin/bash
-# nfs-server.sh - Run on Node 1 (NFS Server)
+# nfs-server.sh - Run on xnch-core (NFS Server)
 set -e
 
-echo "=== Setting up NFS Server on Node 1 ==="
+echo "=== Setting up NFS Server on xnch-core ==="
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -74,10 +74,10 @@ showmount -e localhost
 echo ""
 echo "=== NFS Share Ready ==="
 echo "Export: $MOUNT_POINT"
-echo "Run on other nodes: mount -t nfs 192.168.1.101:$MOUNT_POINT /mnt/nfs"
+echo "Run on other nodes: mount -t nfs 192.168.1.10:$MOUNT_POINT /mnt/nfs"
 ```
 
-### Execute on Node 1
+### Execute on xnch-core
 
 ```bash
 chmod +x manifests/phase3/nfs-server.sh
@@ -92,7 +92,7 @@ sudo ./manifests/phase3/nfs-server.sh
 
 ```bash
 # Install NFS client on all nodes
-# Run on Node 2 and Node 3:
+# Run on gate7:
 sudo apt-get install -y nfs-common
 ```
 
@@ -118,7 +118,7 @@ spec:
     - timeo=600
     - intr
   nfs:
-    server: 192.168.1.101
+    server: 192.168.1.10
     path: /mnt/nfs/share
     readOnly: false
 ---
@@ -173,7 +173,7 @@ kubectl get pvc -n ray-system
 #!/bin/bash
 # nfs-validate.sh - Run from any node to test NFS connectivity
 
-NFS_SERVER="192.168.1.101"
+NFS_SERVER="192.168.1.10"
 NFS_PATH="/mnt/nfs/share"
 LOCAL_MOUNT="/tmp/nfs-test"
 
@@ -370,13 +370,13 @@ kubectl exec -it smoke-test-cluster-ray-head-0 -n ray-system -- ray health check
 
 ```bash
 # Check NFS server
-showmount -e 192.168.1.101
+showmount -e 192.168.1.10
 
 # Check firewall
 sudo ufw status
 
 # Manual mount test
-sudo mount -v -t nfs 192.168.1.101:/mnt/nfs/share /mnt/nfs
+sudo mount -v -t nfs 192.168.1.10:/mnt/nfs/share /mnt/nfs
 ```
 
 ### KubeRay Installation Failed

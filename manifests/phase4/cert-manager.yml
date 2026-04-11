@@ -26,6 +26,3 @@ spec:
     kind: ClusterIssuer
   dnsNames:
   - x-nch.com
-  http01:
-    ingress:
-      class: nginx
